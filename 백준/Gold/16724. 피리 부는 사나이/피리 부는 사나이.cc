@@ -3,17 +3,20 @@
 using namespace std;
 
 // 난이도: 골드3 / 제한 시간: 57min / 해결 시간: 
-// 알고리즘 분류: DFS
+// 알고리즘 분류: BFS
 // 목적: 2차원 그래프에 세이프 존 최소한 추가하기
 // 규칙: 그래프 어디에 위치해 있더라도 세이프 존으로 들어가야 함
 
 // 어디에 위치해 있더라도 세이프존에 들어가야 하기 때문에 그래프 구역이 나뉨
-// 따라서 DFS 이용해서 나뉜 구역의 수 구하기
+// 따라서 BFS를 이용해서 나뉜 구역의 수 구하기
 // 해결할 문제: 세이프 존을 어디 세워야 하는가?
+
+// 사이클이 발생했을 때, 처리하는 과정이 매끄럽지 않아서 오래 걸림.
+// 상태를 3개로 나누고, 방문 경로를 저장했다가 업데이트하는 방법으로 해결
 
 int N, M;
 
-void find_next(char a, int& x, int& y) {
+void next_pos(char a, int& x, int& y) {
     if(a == 'U') {
         x--;
     }
@@ -28,41 +31,29 @@ void find_next(char a, int& x, int& y) {
     }
 }
 
-void dfs(int x, int y, int& k, vector<vector<char>>& adj, vector<vector<int>>& vis) {
-    stack<pair<int, int>> St;
-    St.push({x, y});
-    vis[x][y] = k;
+void f(int sx, int sy, int& ans, vector<vector<char>>& adj, vector<vector<int>>& state) {
+    vector<pair<int, int>> path;
+    int x = sx, y = sy;
+    
+    while (state[x][y] == 0) {
+        state[x][y] = 1;
+        path.push_back({x, y});
+        next_pos(adj[x][y], x, y);
+    }
+    
+    if (state[x][y] == 1) ans++;
 
-    while (!St.empty()) {
-        int cur_x, cur_y, nxt_x, nxt_y;
-        tie(cur_x, cur_y) = St.top();
-        St.pop();
-        nxt_x = cur_x;
-        nxt_y = cur_y;
-        find_next(adj[cur_x][cur_y], nxt_x, nxt_y);
-
-        if(!vis[nxt_x][nxt_y]) {
-            St.push({nxt_x, nxt_y});
-            vis[nxt_x][nxt_y] = k;
-        }
-        else if (vis[nxt_x][nxt_y] != k){
-            int c = vis[nxt_x][nxt_y];
-            int nx, ny;
-            nx = x;
-            ny = y;
-            while (vis[nx][ny] != c) {
-                vis[nx][ny] = c;
-                find_next(adj[nx][ny], nx, ny);
-            }
-            break;
-        }
+    for (auto &p : path) {
+        state[p.first][p.second] = 2;
     }
 }
+
 
 int main() {
     cin >> N >> M;
     vector<vector<char>> adj(N, vector<char>(M));
-    vector<vector<int>> vis(N, vector<int>(M, 0));
+    // 0: 미방문, 1: 현재 경로(탐색 중), 2: 탐색 완료
+    vector<vector<int>> state(N, vector<int>(M, 0));
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < M; j++) {
             cin >> adj[i][j];
@@ -70,20 +61,15 @@ int main() {
     }
 
     
-    int k = 0;
+    int ans = 0;
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < M; j++) {
-            if (!vis[i][j])
-                dfs(i, j, ++k, adj, vis);
+            if (state[i][j]) continue;
+            f(i, j, ans, adj, state);
         }
     }
-    
-    set<int> cnts;
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < M; j++) {
-            cnts.insert(vis[i][j]);
-        }
-    }
-    cout << cnts.size();
+
+    cout << ans;
+
     return 0;
 }
